@@ -16,7 +16,6 @@ interface ExperimentInputSelectorProps {
     rows: {
       inputRecordId: string;
       inputs: Record<string, string>;
-      autoInputs: any[];
     }[]
   ) => void;
 }
@@ -76,7 +75,6 @@ export const ExperimentRandomInputSelector = (
       prompt_version: row.prompt_version,
       created_at: row.created_at,
       response: row.response_body,
-      autoInputs: row.auto_prompt_inputs,
     }));
   }, [randomInputRecordsData, numberInput]);
 
@@ -132,7 +130,7 @@ export const ExperimentRandomInputSelector = (
               selectedRandomInputs.map((request) => (
                 <li key={request.id} className="w-full flex items-start">
                   <PromptPropertyCard
-                    autoInputs={request.autoInputs}
+                    autoInputs={request.inputs}
                     isSelected={true}
                     requestId={request.source_request}
                     createdAt={request.created_at}
@@ -160,7 +158,6 @@ export const ExperimentRandomInputSelector = (
                 selectedRandomInputs.map((request) => ({
                   inputRecordId: request.id,
                   inputs: request.inputs,
-                  autoInputs: request.autoInputs,
                 }))
               );
 

@@ -15,7 +15,6 @@ interface ExperimentInputSelectorProps {
     rows: {
       inputRecordId: string;
       inputs: Record<string, string>;
-      autoInputs: any[];
     }[]
   ) => void;
 }
@@ -69,7 +68,6 @@ const ExperimentInputSelector = (props: ExperimentInputSelectorProps) => {
       prompt_version: record.prompt_version,
       created_at: record.created_at,
       response: record.response_body,
-      autoInputs: record.auto_prompt_inputs,
     }));
   }, [inputRecordsData]);
 
@@ -159,7 +157,7 @@ const ExperimentInputSelector = (props: ExperimentInputSelectorProps) => {
                     onChange={() => handleToggleRequest(request.id)}
                   />
                   <PromptPropertyCard
-                    autoInputs={request.autoInputs}
+                    autoInputs={request.inputs}
                     isSelected={selectedRequests.some(
                       (req) => req.id === request.id
                     )}
@@ -193,7 +191,6 @@ const ExperimentInputSelector = (props: ExperimentInputSelectorProps) => {
                 selectedRequests.map((request) => ({
                   inputRecordId: request.id,
                   inputs: request.inputs,
-                  autoInputs: request.autoInputs,
                 }))
               );
 

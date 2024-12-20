@@ -4,12 +4,10 @@ const baseExperimentPrompt: PromptObject = {
   model: "gpt-4o-mini",
   messages: [
     {
-      id: "1",
       role: "user",
       content: [{ text: "Hi, what can I do in experiments?", type: "text" }],
     },
     {
-      id: "2",
       role: "assistant",
       content: [
         {
@@ -19,7 +17,6 @@ const baseExperimentPrompt: PromptObject = {
       ],
     },
     {
-      id: "3",
       role: "user",
       content: [
         {

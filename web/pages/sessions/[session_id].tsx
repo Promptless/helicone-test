@@ -14,7 +14,7 @@ const SessionDetail = ({ session_id }: { session_id: string }) => {
 
   const requests = useGetRequests(
     1,
-    1000,
+    100,
     {
       left: {
         request_response_rmt: {

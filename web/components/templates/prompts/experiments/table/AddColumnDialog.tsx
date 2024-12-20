@@ -7,6 +7,7 @@ import { FlaskConicalIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import PromptPlayground from "../../id/promptPlayground";
 import { useJawnClient } from "@/lib/clients/jawnHook";
+import { OnboardingPopover } from "@/components/templates/onboarding/OnboardingPopover";
 import useOnboardingContext, {
   ONBOARDING_STEPS,
 } from "@/components/layout/onboardingContext";
@@ -34,6 +35,7 @@ const AddColumnDialog = ({
   originalColumnPromptVersionId: string;
   numberOfExistingPromptVersions: number;
 }) => {
+  // const [showSuggestionPanel, setShowSuggestionPanel] = useState(false);
   const [promptVariables, setPromptVariables] = useState<
     {
       original: string;
@@ -41,6 +43,12 @@ const AddColumnDialog = ({
       value: string;
     }[]
   >([]);
+  // const [scoreCriterias, setScoreCriterias] = useState<
+  //   {
+  //     scoreType?: (typeof SCORES)[number];
+  //     criteria?: string;
+  //   }[]
+  // >([]);
 
   const jawn = useJawnClient();
   const queryClient = useQueryClient();
@@ -69,6 +77,22 @@ const AddColumnDialog = ({
       });
 
       return res.data?.data;
+
+      // const parentPromptVersion = await jawnClient.GET(
+      //   "/v1/prompt/version/{promptVersionId}",
+      //   {
+      //     params: {
+      //       path: {
+      //         promptVersionId: res.data?.data?.parent_prompt_version ?? "",
+      //       },
+      //     },
+      //   }
+      // );
+
+      // return {
+      //   ...res.data?.data,
+      //   parent_prompt_version: parentPromptVersion?.data?.data,
+      // };
     },
     {
       enabled: !!selectedForkFromPromptVersionId && !!orgId,
@@ -106,25 +130,34 @@ const AddColumnDialog = ({
           : onOpenChange
       }
     >
-      <DialogContent className="w-[95vw] max-w-5xl gap-0 max-h-[90vh] overflow-y-auto">
-        <div className="flex justify-between items-center mb-8">
-          <div className="flex items-center">
-            <FlaskConicalIcon className="w-5 h-5 mr-2.5 text-slate-500" />
-            <h3 className="text-base font-medium text-slate-950 dark:text-white mr-3">
-              Add Prompt
-            </h3>
-            <div className="flex gap-1 items-center">
-              <p className="text-slate-500 text-sm font-medium leading-4">
-                Forked from
-              </p>
-              <Badge variant="helicone" className="text-slate-500">
-                <FlaskConicalIcon className="w-3.5 h-3.5 mr-1" />
-                {(promptVersionTemplateData?.metadata?.label as string) ??
-                  `v${promptVersionTemplateData?.major_version}.${promptVersionTemplateData?.minor_version}`}
-              </Badge>
+      <DialogContent className="w-[95vw] max-w-2xl gap-0 max-h-[90vh] overflow-y-auto">
+        <OnboardingPopover
+          popoverContentProps={{
+            onboardingStep: "EXPERIMENTS_ADD_CHANGE_PROMPT",
+            align: "start",
+            alignOffset: 10,
+          }}
+          modal={true}
+        >
+          <div className="flex justify-between items-center mb-8">
+            <div className="flex items-center">
+              <FlaskConicalIcon className="w-5 h-5 mr-2.5 text-slate-500" />
+              <h3 className="text-base font-medium text-slate-950 dark:text-white mr-3">
+                Add Prompt
+              </h3>
+              <div className="flex gap-1 items-center">
+                <p className="text-slate-500 text-sm font-medium leading-4">
+                  Forked from
+                </p>
+                <Badge variant="helicone" className="text-slate-500">
+                  <FlaskConicalIcon className="w-3.5 h-3.5 mr-1" />
+                  {(promptVersionTemplateData?.metadata?.label as string) ??
+                    `v${promptVersionTemplateData?.major_version}.${promptVersionTemplateData?.minor_version}`}
+                </Badge>
+              </div>
             </div>
           </div>
-        </div>
+        </OnboardingPopover>
 
         {promptVersionTemplateData && (
           <PromptPlayground
@@ -138,20 +171,15 @@ const AddColumnDialog = ({
             onSubmit={async (history, model) => {
               const promptData = {
                 model: model,
-                messages: history.map((msg) => {
-                  if (typeof msg === "string") {
-                    return msg;
-                  }
-                  return {
-                    role: msg.role,
-                    content: [
-                      {
-                        text: msg.content,
-                        type: "text",
-                      },
-                    ],
-                  };
-                }),
+                messages: history.map((msg) => ({
+                  role: msg.role,
+                  content: [
+                    {
+                      text: msg.content,
+                      type: "text",
+                    },
+                  ],
+                })),
               };
 
               const result = await jawn.POST(

@@ -166,16 +166,6 @@ export function ProviderStatusPage({ provider }: ProviderStatusPageProps) {
           <AllProvidersTable providers={allProviderStatus} />
         )}
       </div>
-      <i className="text-sm text-gray-500">
-        Lightning speeds powered by{" "}
-        <a
-          href="https://clickhouse.com"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Clickhouse Cloud
-        </a>
-      </i>
       <StatusFAQ provider={provider} />
     </div>
   );

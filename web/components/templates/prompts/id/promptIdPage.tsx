@@ -1,84 +1,85 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useState, useMemo, useRef } from "react";
 import {
   usePrompt,
   usePromptRequestsOverTime,
   usePromptVersions,
 } from "../../../../services/hooks/prompts/prompts";
 
-import { Input as PromptInput } from "@/components/templates/prompts/id/MessageInput";
 import {
-  ArrowTrendingUpIcon,
   BeakerIcon,
+  ArrowTrendingUpIcon,
+  TrashIcon,
   ChevronDownIcon,
   MagnifyingGlassIcon,
-  TrashIcon,
   XMarkIcon,
 } from "@heroicons/react/24/outline";
-
-import { TimeFilter } from "@/types/timeFilter";
-import { useSearchParams } from "next/navigation";
 import { useRouter } from "next/router";
-import { useJawnClient } from "../../../../lib/clients/jawnHook";
+import { useExperiments } from "../../../../services/hooks/prompts/experiments";
+import { useInputs } from "../../../../services/hooks/prompts/inputs";
+import HcBreadcrumb from "../../../ui/hcBreadcrumb";
+import { useGetDataSets } from "../../../../services/hooks/prompts/datasets";
+import { MODEL_LIST } from "../../playground/new/modelList";
+import { BackendMetricsCall } from "../../../../services/hooks/useBackendFunction";
 import {
   TimeInterval,
   getTimeInterval,
   getTimeIntervalAgo,
 } from "../../../../lib/timeCalculations/time";
-import { useGetDataSets } from "../../../../services/hooks/prompts/datasets";
-import { useExperiments } from "../../../../services/hooks/prompts/experiments";
-import { useInputs } from "../../../../services/hooks/prompts/inputs";
-import { BackendMetricsCall } from "../../../../services/hooks/useBackendFunction";
+import { useSearchParams } from "next/navigation";
+import { TimeFilter } from "@/types/timeFilter";
 import {
   FilterBranch,
   FilterLeaf,
 } from "../../../../services/lib/filters/filterDefs";
-import useNotification from "../../../shared/notification/useNotification";
-import HcBreadcrumb from "../../../ui/hcBreadcrumb";
-import { MODEL_LIST } from "../../playground/new/modelList";
-import { PromptMessage } from "../../requests/chatComponent/types";
 import PromptPlayground from "./promptPlayground";
+import { useJawnClient } from "../../../../lib/clients/jawnHook";
+import useNotification from "../../../shared/notification/useNotification";
+import { Message } from "../../requests/chatComponent/types";
 
-import useOnboardingContext, {
-  ONBOARDING_STEPS,
-} from "@/components/layout/onboardingContext";
-import { useOrg } from "@/components/layout/org/organizationContext";
+import { Badge } from "../../../ui/badge";
+import { ScrollArea } from "../../../ui/scroll-area";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  HoverCard,
-  HoverCardContent,
-  HoverCardTrigger,
-} from "@/components/ui/hoverCard";
-import { Input } from "@/components/ui/input";
-import { IslandContainer } from "@/components/ui/islandContainer";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import { cn } from "@/lib/utils";
 import { EllipsisHorizontalIcon } from "@heroicons/react/24/solid";
-import { AreaChart, MultiSelect, MultiSelectItem } from "@tremor/react";
-import { clsx } from "clsx";
-import { InfoIcon } from "lucide-react";
+import { MultiSelect, MultiSelectItem, AreaChart } from "@tremor/react";
 import { getTimeMap } from "../../../../lib/timeCalculations/constants";
 import LoadingAnimation from "../../../shared/loadingAnimation";
 import { SimpleTable } from "../../../shared/table/simpleTable";
 import ThemedTimeFilter from "../../../shared/themed/themedTimeFilter";
 import { getUSDateFromString } from "../../../shared/utils/utils";
-import { Badge } from "../../../ui/badge";
-import { Button } from "../../../ui/button";
-import { ScrollArea } from "../../../ui/scroll-area";
 import StyledAreaChart from "../../dashboard/styledAreaChart";
 import ModelPill from "../../requestsV2/modelPill";
 import StatusBadge from "../../requestsV2/statusBadge";
 import TableFooter from "../../requestsV2/tableFooter";
+import { Button } from "../../../ui/button";
+import { useUser } from "@supabase/auth-helpers-react";
+import { useFeatureFlags } from "@/services/hooks/featureFlags";
+import { useOrg } from "@/components/layout/org/organizationContext";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
+} from "@/components/ui/hoverCard";
+import { InfoIcon } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { Input } from "@/components/ui/input";
+import { clsx } from "clsx";
 import PromptInputItem from "./promptInputItem";
+import { IslandContainer } from "@/components/ui/islandContainer";
+import { cn } from "@/lib/utils";
+import useOnboardingContext, {
+  ONBOARDING_STEPS,
+} from "@/components/layout/onboardingContext";
+import { OnboardingPopover } from "../../onboarding/OnboardingPopover";
 
 interface PromptIdPageProps {
   id: string;
@@ -108,13 +109,27 @@ export function getTimeAgo(date: Date): string {
   return `${Math.floor(secondsPast / 31536000)} years ago`;
 }
 
+type NotNullOrUndefined<T> = T extends null | undefined ? never : T;
+
+// Update the Input type definition
+type Input = {
+  id: string;
+  inputs: { [key: string]: string };
+  source_request: string;
+  prompt_version: string;
+  created_at: string;
+  response_body?: string; // Make response_body optional
+  auto_prompt_inputs: Record<string, any>[] | unknown[];
+};
+
 const PromptIdPage = (props: PromptIdPageProps) => {
   const { id, currentPage, pageSize } = props;
   const { prompt, isLoading, refetch: refetchPrompt } = usePrompt(id);
   const jawn = useJawnClient();
   const [page, setPage] = useState<number>(currentPage);
   const [currentPageSize, setCurrentPageSize] = useState<number>(pageSize);
-  const [selectedInput, setSelectedInput] = useState<PromptInput | undefined>();
+  const [inputView, setInputView] = useState<"list" | "grid">("list");
+  const [selectedInput, setSelectedInput] = useState<Input | undefined>();
   const [searchRequestId, setSearchRequestId] = useState<string>("");
   const searchParams = useSearchParams();
   const notification = useNotification();
@@ -159,7 +174,7 @@ const PromptIdPage = (props: PromptIdPageProps) => {
     getInterval() as TimeInterval
   );
 
-  const createSubversion = async (history: PromptMessage[], model: string) => {
+  const createSubversion = async (history: Message[], model: string) => {
     if (prompt?.metadata?.createdFromUi === false) {
       notification.setNotification(
         "Prompt was not created from the UI, please change the prompt in your codebase to use the new version",
@@ -169,20 +184,15 @@ const PromptIdPage = (props: PromptIdPageProps) => {
     }
     const promptData = {
       model: model,
-      messages: history.map((msg) => {
-        if (typeof msg === "string") {
-          return msg;
-        }
-        return {
-          role: msg.role,
-          content: [
-            {
-              text: msg.content,
-              type: "text",
-            },
-          ],
-        };
-      }),
+      messages: history.map((msg) => ({
+        role: msg.role,
+        content: [
+          {
+            text: msg.content,
+            type: "text",
+          },
+        ],
+      })),
     };
 
     const result = await jawn.POST(
@@ -343,7 +353,7 @@ const PromptIdPage = (props: PromptIdPageProps) => {
     }
   };
 
-  const handleInputSelect = (input: PromptInput | undefined) => {
+  const handleInputSelect = (input: Input | undefined) => {
     setSelectedInput((prevInput) => {
       if (prevInput?.id === input?.id) {
         return undefined; // Deselect if the same input is clicked again
@@ -462,8 +472,13 @@ const PromptIdPage = (props: PromptIdPageProps) => {
     refetchPromptVersions();
     refetchPrompt();
   };
-
+  const user = useUser();
   const org = useOrg();
+
+  const experimentFlags = useFeatureFlags(
+    "experiment",
+    org?.currentOrg?.id ?? ""
+  );
 
   const [isVersionsExpanded, setIsVersionsExpanded] = useState(true);
   const [isInputsExpanded, setIsInputsExpanded] = useState(true);
@@ -642,21 +657,30 @@ const PromptIdPage = (props: PromptIdPageProps) => {
             <div className="flex items-start relative">
               <div className="py-4 flex flex-col space-y-4 w-full h-[calc(100vh-76px)]">
                 <div className="flex h-full">
-                  <div className="w-2/3 overflow-y-auto">
-                    <PromptPlayground
-                      prompt={selectedPrompt?.helicone_template || ""}
-                      selectedInput={selectedInput || undefined}
-                      onSubmit={async (history, model) => {
-                        await createSubversion(history, model);
-                      }}
-                      submitText="Test"
-                      initialModel={model}
-                      isPromptCreatedFromUi={
-                        prompt?.metadata?.createdFromUi as boolean | undefined
-                      }
-                      className="border-y border-slate-200 dark:border-slate-700"
-                    />
-                  </div>
+                  <OnboardingPopover
+                    open={typeof prompt?.user_defined_id === "string"}
+                    popoverContentProps={{
+                      onboardingStep: "PROMPTS_PAGE",
+                      align: "start",
+                      side: "right",
+                    }}
+                  >
+                    <div className="w-2/3 overflow-y-auto">
+                      <PromptPlayground
+                        prompt={selectedPrompt?.helicone_template || ""}
+                        selectedInput={selectedInput || undefined}
+                        onSubmit={async (history, model) => {
+                          await createSubversion(history, model);
+                        }}
+                        submitText="Test"
+                        initialModel={model}
+                        isPromptCreatedFromUi={
+                          prompt?.metadata?.createdFromUi as boolean | undefined
+                        }
+                        className="border-y border-slate-200 dark:border-slate-700"
+                      />
+                    </div>
+                  </OnboardingPopover>
                   <div className="w-1/3 flex flex-col h-full">
                     <div className="border-y border-x border-slate-200 dark:border-slate-700 bg-[#F9FAFB] dark:bg-black flex flex-col h-full">
                       <div
@@ -825,19 +849,37 @@ const PromptIdPage = (props: PromptIdPageProps) => {
                                                   <EllipsisHorizontalIcon className="h-6 w-6 text-slate-500" />
                                                 </button>
                                               </DropdownMenuTrigger>
-                                              <DropdownMenuContent>
-                                                <DropdownMenuItem
-                                                  onClick={() =>
+                                              <OnboardingPopover
+                                                popoverContentProps={{
+                                                  onboardingStep:
+                                                    "PROMPTS_EXPERIMENT",
+                                                  next: () => {
                                                     startExperiment(
                                                       promptVersion.id,
                                                       promptVersion.helicone_template
-                                                    )
-                                                  }
-                                                >
-                                                  <BeakerIcon className="h-4 w-4 mr-2" />
-                                                  Experiment
-                                                </DropdownMenuItem>
-                                              </DropdownMenuContent>
+                                                    );
+                                                  },
+                                                  align: "end",
+                                                  side: "bottom",
+                                                  sideOffset: 80,
+                                                  alignOffset: -10,
+                                                }}
+                                                triggerAsChild={false}
+                                              >
+                                                <DropdownMenuContent>
+                                                  <DropdownMenuItem
+                                                    onClick={() =>
+                                                      startExperiment(
+                                                        promptVersion.id,
+                                                        promptVersion.helicone_template
+                                                      )
+                                                    }
+                                                  >
+                                                    <BeakerIcon className="h-4 w-4 mr-2" />
+                                                    Experiment
+                                                  </DropdownMenuItem>
+                                                </DropdownMenuContent>
+                                              </OnboardingPopover>
                                             </DropdownMenu>
                                           ) : (
                                             <></>

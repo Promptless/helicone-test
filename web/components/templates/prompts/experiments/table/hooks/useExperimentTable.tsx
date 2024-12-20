@@ -200,7 +200,6 @@ export const useExperimentTable = (experimentTableId: string) => {
       rows: {
         inputRecordId: string;
         inputs: Record<string, string>;
-        autoInputs: any[];
       }[];
     }) => {
       const jawnClient = getJawnClient(orgId);

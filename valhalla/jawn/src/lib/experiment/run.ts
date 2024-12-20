@@ -36,11 +36,9 @@ async function isOnPrem(): Promise<boolean> {
   return truthy ? true : false;
 }
 
-type Provider = "OPENAI" | "OPENROUTER";
-
 async function prepareRequest(
   args: PreparedRequestArgs,
-  provider: Provider
+  provider: "OPENAI" | "ANTHROPIC"
 ): Promise<PreparedRequest> {
   if (await isOnPrem()) {
     return await prepareRequestAzureOnPremFull(args);
@@ -170,9 +168,5 @@ export async function run(
   });
 }
 const providerByModelName = (modelName: string) => {
-  if (modelName.includes("gpt")) {
-    return "OPENAI";
-  } else {
-    return "OPENROUTER";
-  }
+  return modelName.includes("claude") ? "ANTHROPIC" : "OPENAI";
 };
