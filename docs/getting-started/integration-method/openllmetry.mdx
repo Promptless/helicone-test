@@ -27,7 +27,7 @@ import OpenAI from "openai";
 
 const logger = new HeliconeAsyncLogger({
     apiKey: process.env.HELICONE_API_KEY,
-    // pass in the providers you want logged
+    // pass in the providers you want logged (Helicone supports providers like OpenAI, Anthropic, Cohere, Google, Mistralai, X-AI, Meta-Llama, and more)
     providers: {
       openAI: OpenAI,
       //anthropic: Anthropic,
@@ -141,6 +141,9 @@ response = client.chat.completions.create(
 - [x] Cohere
 - [x] Bedrock
 - [x] Google AI Platform
+- [x] Mistralai
+- [x] X-AI
+- [x] Meta Llama
 
 # Other Integrations
 
