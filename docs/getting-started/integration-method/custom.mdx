@@ -97,7 +97,7 @@ type HeliconeLogRequest = ILogRequest | HeliconeCustomEventRequest; // ILogReque
 
 // The name and structure of the prompt field depends on the model you are using.
 // Eg: for chat models it is named "messages", for embeddings models it is named "input".
-// Hence, the only enforced type is 'model' (Helicone now supports an expanded set of providers, including Google, Mistralai, X-AI, and Meta-Llama. If 'gpt' is in the model name, it is automatically recognized as OpenAI; otherwise, it defaults to OpenRouter), you need still add the respective prompt property for your model.
+// Hence, the only enforced type is `model`, you need still add the respective prompt property for your model.
 // You may also add more properties (eg: temperature, stop reason etc)
 type ILogRequest = {
   model: string;
